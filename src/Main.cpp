@@ -61,26 +61,29 @@ static void SurroundSelectionsWith(char ch1, char ch2) {
 	// Sort so they are replaced top to bottom
 	std::sort(selections.begin(), selections.end());
 
-	int offset = 0;
-	int i = 0;
+
 	editor.BeginUndoAction();
-	for (const auto &selection : selections) {
+	editor.ClearSelections();
+
+	int offset = 0;
+	for (size_t i = 0; i < selections.size(); ++i) {
+		const auto &selection = selections[i];
 		editor.SetTargetRange(selection.first + offset, selection.second + offset);
 
-		std::string target(editor.GetTargetText(NULL), '\0');
-		editor.GetTargetText(&target[0]);
+		auto target = editor.GetTargetText();
 
 		// Add in the characters
 		target.insert(target.begin(), 1, ch1);
 		target.insert(target.end(), 1, ch2);
 
-		editor.ReplaceTarget(-1, target.c_str());
+		editor.ReplaceTarget(target);
 
-		editor.SetSelectionNStart(i, selection.first + offset + 1);
-		editor.SetSelectionNEnd(i, selection.second + offset + 2 - 1);
+		if (i == 0)
+			editor.SetSelection(selection.first + offset + 1, selection.second + offset + 1);
+		else
+			editor.AddSelection(selection.first + offset + 1, selection.second + offset + 1);
 
-		offset += 2;
-		++i;
+		offset += 2; // Add 2 since the replaced string is 2 chars longer
 	}
 
 	editor.EndUndoAction();
@@ -136,15 +139,15 @@ LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
 
 BOOL APIENTRY DllMain(HANDLE hModule, DWORD  reasonForCall, LPVOID lpReserved) {
 	switch (reasonForCall) {
-	case DLL_PROCESS_ATTACH:
-		_hModule = hModule;
-		break;
-	case DLL_PROCESS_DETACH:
-		break;
-	case DLL_THREAD_ATTACH:
-		break;
-	case DLL_THREAD_DETACH:
-		break;
+		case DLL_PROCESS_ATTACH:
+			_hModule = hModule;
+			break;
+		case DLL_PROCESS_DETACH:
+			break;
+		case DLL_THREAD_ATTACH:
+			break;
+		case DLL_THREAD_DETACH:
+			break;
 	}
 	return TRUE;
 }
@@ -194,4 +197,4 @@ extern "C" __declspec(dllexport) LRESULT messageProc(UINT Message, WPARAM wParam
 extern "C" __declspec(dllexport) BOOL isUnicode() {
 	return TRUE;
 }
-#endif //UNICODE
+#endif
