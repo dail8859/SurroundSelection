@@ -1,5 +1,5 @@
 # SurroundSelection
-Notepad++ plugin to automatically surround the selection in quotes/brackets/parenthesis/etc. This can also be used on multiple or rectangluar selections.
+Notepad++ plugin to automatically surround the selection in quotes/brackets/parenthesis/etc. This can also be used on multiple or rectangular selections.
 
 **Note:** This is still in early development. It has not been tested with non-US keyboard layouts.
 
