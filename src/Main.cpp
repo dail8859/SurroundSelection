@@ -61,7 +61,6 @@ static void SurroundSelectionsWith(char ch1, char ch2) {
 	// Sort so they are replaced top to bottom
 	std::sort(selections.begin(), selections.end());
 
-
 	editor.BeginUndoAction();
 	editor.ClearSelections();
 
@@ -103,7 +102,7 @@ LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
 						ch1 = ch2 = '\'';
 					}
 				}
-				else if (wparam == VK_OEM_4) {
+				else if (wparam == VK_OEM_4 || wparam == VK_OEM_6) {
 					if (GetKeyState(VK_SHIFT) & KF_UP) {
 						ch1 = '{';
 						ch2 = '}';
@@ -113,7 +112,7 @@ LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
 						ch2 = ']';
 					}
 				}
-				else if (wparam == 0x39) {
+				else if (wparam == 0x39 || wparam == 0x3A) {
 					if (GetKeyState(VK_SHIFT) & KF_UP) {
 						ch1 = '(';
 						ch2 = ')';
