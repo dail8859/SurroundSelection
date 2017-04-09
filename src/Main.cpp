@@ -30,11 +30,39 @@ static HHOOK hook = NULL;
 static bool hasFocus = true;
 static ScintillaGateway editor;
 
+static void enableSurroundSelection();
 static void showAbout();
 
+LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam);
+
 FuncItem funcItem[] = {
+	{ TEXT("Enable"), enableSurroundSelection, 0, false, nullptr },
+	{ TEXT(""), nullptr, 0, false, nullptr },
 	{ TEXT("About..."), showAbout, 0, false, nullptr }
 };
+
+const wchar_t *GetIniFilePath() {
+	static wchar_t iniPath[MAX_PATH] = { 0 };
+
+	if (iniPath[0] == 0) {
+		SendMessage(nppData._nppHandle, NPPM_GETPLUGINSCONFIGDIR, MAX_PATH, (LPARAM)iniPath);
+		wcscat_s(iniPath, MAX_PATH, L"\\SurroundSelection.ini");
+	}
+
+	return iniPath;
+}
+
+static void enableSurroundSelection() {
+	if (hook) {
+		UnhookWindowsHookEx(hook);
+		hook = NULL;
+		SendMessage(nppData._nppHandle, NPPM_SETMENUITEMCHECK, funcItem[0]._cmdID, 0);
+	}
+	else {
+		hook = SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, (HINSTANCE)_hModule, ::GetCurrentThreadId());
+		SendMessage(nppData._nppHandle, NPPM_SETMENUITEMCHECK, funcItem[0]._cmdID, 1);
+	}
+}
 
 static void showAbout() {
 	ShowAboutDialog((HINSTANCE)_hModule, MAKEINTRESOURCE(IDD_ABOUTDLG), nppData._nppHandle);
@@ -163,7 +191,7 @@ extern "C" __declspec(dllexport) const wchar_t *getName() {
 }
 
 extern "C" __declspec(dllexport) FuncItem *getFuncsArray(int *nbF) {
-	*nbF = sizeof(funcItem) / sizeof(funcItem[0]);;
+	*nbF = sizeof(funcItem) / sizeof(funcItem[0]);
 	return funcItem;
 }
 
@@ -175,11 +203,18 @@ extern "C" __declspec(dllexport) void beNotified(SCNotification *notifyCode) {
 		case SCN_FOCUSOUT:
 			hasFocus = false;
 			break;
-		case NPPN_READY:
-			hook = SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, (HINSTANCE)_hModule, ::GetCurrentThreadId());
+		case NPPN_READY: {
+			bool isEnabled = GetPrivateProfileInt(TEXT("SurroundSelection"), TEXT("enabled"), 1, GetIniFilePath()) == 1;
+			if (isEnabled) {
+				hook = SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, (HINSTANCE)_hModule, ::GetCurrentThreadId());
+				SendMessage(nppData._nppHandle, NPPM_SETMENUITEMCHECK, funcItem[0]._cmdID, 1);
+			}
 			break;
+		}
 		case NPPN_SHUTDOWN:
-			if (hook != NULL) UnhookWindowsHookEx(hook);
+			WritePrivateProfileString(TEXT("SurroundSelection"), TEXT("enabled"), hook ? TEXT("1") : TEXT("0"), GetIniFilePath());
+			if (hook != NULL)
+				UnhookWindowsHookEx(hook);
 			break;
 		case NPPN_BUFFERACTIVATED:
 			editor.SetScintillaInstance(GetCurrentScintilla());
