@@ -140,7 +140,7 @@ LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
 						ch2 = ']';
 					}
 				}
-				else if (wparam == 0x39 || wparam == 0x3A) {
+				else if (wparam == 0x39 || wparam == 0x30) {
 					if (GetKeyState(VK_SHIFT) & KF_UP) {
 						ch1 = '(';
 						ch2 = ')';
