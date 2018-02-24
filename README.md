@@ -1,4 +1,7 @@
 # SurroundSelection
+
+[![Build status](https://ci.appveyor.com/api/projects/status/github/dail8859/SurroundSelection?branch=master&svg=true)](https://ci.appveyor.com/project/dail8859/SurroundSelection/branch/master)
+
 Notepad++ plugin to automatically surround the selection in quotes/brackets/parenthesis/etc. This can also be used on multiple or rectangular selections.
 
 **Note:** This is still in early development. It has not been fully tested with non-US keyboard layouts.
