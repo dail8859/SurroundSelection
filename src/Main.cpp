@@ -61,10 +61,6 @@ static void updateKL() {
 	keyboardLayout = GetKeyboardLayout(0);
 }
 
-static WPARAM keyIfDown(UINT value) {
-	return (GetKeyState(value) & KF_UP) != 0;
-}
-
 static void enableSurroundSelection() {
 	if (hook) {
 		UnhookWindowsHookEx(hook);
@@ -132,33 +128,21 @@ static void SurroundSelectionsWith(char ch1, char ch2) {
 LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
 	if (ncode != HC_ACTION)
 		goto proceed;
-	bool keyState = (lparam >> 30) & 1;
-	/*if (isKey(wparam, VK_CONTROL) || isKey(wparam, VK_SHIFT) || isKey(wparam, VK_MENU)) {
-		if (keyState)
-			kbModifiers |= wparam;
-		else
-			kbModifiers &= ~wparam;
-		printf("[SurroundSelection] 1. ModifierKey: %d\n", kbModifiers);
-		goto proceed;
-	}*/
 	if ((HIWORD(lparam) & KF_UP) != 0 || !hasFocus)
 		goto proceed;
 
-
-	//printf("[SurroundSelection] 1. Keyboard state\n");
 	char ch1 = 0, ch2 = 0;
 	UINT scanCode = (lparam >> 16) & 0xFF;
+	//Get full keyboard state
 	if (!GetKeyboardState(kbState))
 		goto proceed;
-	//printf("[SurroundSelection] 2. Key char\n");
-	//WPARAM kbModifiers = 0;
-	//kbModifiers = keyIfDown(VK_CONTROL) | keyIfDown(VK_SHIFT) | keyIfDown(VK_MENU);
+	//Translate state, pressed key and keyboard layout in the respective characters
 	int amount = ToAsciiEx((UINT)wparam, scanCode, kbState, kbBuff, 0, keyboardLayout);
 	if (amount < 1)
 		goto proceed;
 
+	//Get first translated character
 	char ch = (char)kbBuff[0];
-	//printf("[SurroundSelection] 3. Parse char #%d (%c,%c,%c,%c)\n", amount, kbBuff[3], kbBuff[2], kbBuff[1], kbBuff[0]);
 	if (ch == '"' || ch == '\'' || ch == '`') {
 		ch1 = ch2 = (char)ch;
 	} else if (ch == '(' || ch == ')') {
@@ -170,45 +154,13 @@ LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
 	} else if (ch == '<' || ch == '>') {
 		ch1 = '<'; ch2 = '>';
 	}
-	/*if (wparam == VK_OEM_7) {
-		if (GetKeyState(VK_SHIFT) & KF_UP) {
-			ch1 = ch2 = '"';
-		}
-		else {
-			ch1 = ch2 = '\'';
-		}
-	}
-	else if (wparam == VK_OEM_4 || wparam == VK_OEM_6) {
-		if (GetKeyState(VK_SHIFT) & KF_UP) {
-			ch1 = '{';
-			ch2 = '}';
-		}
-		else {
-			ch1 = '[';
-			ch2 = ']';
-		}
-	}
-	else if (wparam == 0x39 || wparam == 0x30) {
-		if (GetKeyState(VK_SHIFT) & KF_UP) {
-			ch1 = '(';
-			ch2 = ')';
-		}
-	}
-	//else if (wparam == VK_OEM_COMMA) {
-	//	if (GetKeyState(VK_SHIFT) & KF_UP) {
-	//		ch1 = '<';
-	//		ch2 = '>';
-	//	}
-	//}*/
 
 	if (ch1 != 0 && editor.GetSelectionEmpty() == 0) {
 		SurroundSelectionsWith(ch1, ch2);
-		//printf("[SurroundSelection] Done.\n\n");
 		return TRUE; // This key has been "handled" and won't propogate
 	}
 
 	proceed:
-	//printf("\n\n");
 	return CallNextHookEx(hook, ncode, wparam, lparam); //pass control to next hook in the hook chain.
 }
 
