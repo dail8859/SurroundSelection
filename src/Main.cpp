@@ -24,11 +24,16 @@
 #include <algorithm>
 #include <vector>
 
+#define buffChars 1
+
 static HANDLE _hModule;
 static NppData nppData;
 static HHOOK hook = NULL;
+static HKL keyboardLayout = NULL;
 static bool hasFocus = true;
 static ScintillaGateway editor;
+static LPWORD kbBuff = (LPWORD)new byte[buffChars];
+static PBYTE kbState = new byte[256];
 
 static void enableSurroundSelection();
 static void showAbout();
@@ -50,6 +55,10 @@ const wchar_t *GetIniFilePath() {
 	}
 
 	return iniPath;
+}
+
+static void updateKL() {
+	keyboardLayout = GetKeyboardLayout(0);
 }
 
 static void enableSurroundSelection() {
@@ -117,49 +126,41 @@ static void SurroundSelectionsWith(char ch1, char ch2) {
 }
 
 LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
-	if (ncode == HC_ACTION) {
-		if ((HIWORD(lparam) & KF_UP) == 0) {
-			if (hasFocus && !(GetKeyState(VK_CONTROL) & KF_UP) && !(GetKeyState(VK_MENU) & KF_UP)) {
-				char ch1 = 0, ch2 = 0;
+	if (ncode != HC_ACTION)
+		goto proceed;
+	if ((HIWORD(lparam) & KF_UP) != 0 || !hasFocus)
+		goto proceed;
 
-				if (wparam == VK_OEM_7) {
-					if (GetKeyState(VK_SHIFT) & KF_UP) {
-						ch1 = ch2 = '"';
-					}
-					else {
-						ch1 = ch2 = '\'';
-					}
-				}
-				else if (wparam == VK_OEM_4 || wparam == VK_OEM_6) {
-					if (GetKeyState(VK_SHIFT) & KF_UP) {
-						ch1 = '{';
-						ch2 = '}';
-					}
-					else {
-						ch1 = '[';
-						ch2 = ']';
-					}
-				}
-				else if (wparam == 0x39 || wparam == 0x30) {
-					if (GetKeyState(VK_SHIFT) & KF_UP) {
-						ch1 = '(';
-						ch2 = ')';
-					}
-				}
-				//else if (wparam == VK_OEM_COMMA) {
-				//	if (GetKeyState(VK_SHIFT) & KF_UP) {
-				//		ch1 = '<';
-				//		ch2 = '>';
-				//	}
-				//}
+	char ch1 = 0, ch2 = 0;
+	UINT scanCode = (lparam >> 16) & 0xFF;
+	//Get full keyboard state
+	if (!GetKeyboardState(kbState))
+		goto proceed;
+	//Translate state, pressed key and keyboard layout in the respective characters
+	int amount = ToAsciiEx((UINT)wparam, scanCode, kbState, kbBuff, 0, keyboardLayout);
+	if (amount < 1)
+		goto proceed;
 
-				if (ch1 != 0 && editor.GetSelectionEmpty() == 0) {
-					SurroundSelectionsWith(ch1, ch2);
-					return TRUE; // This key has been "handled" and won't propogate
-				}
-			}
-		}
+	//Get first translated character
+	char ch = (char)kbBuff[0];
+	if (ch == '"' || ch == '\'' || ch == '`') {
+		ch1 = ch2 = (char)ch;
+	} else if (ch == '(' || ch == ')') {
+		ch1 = '('; ch2 = ')';
+	} else if (ch == '[' || ch == ']') {
+		ch1 = '['; ch2 = ']';
+	} else if (ch == '{' || ch == '}') {
+		ch1 = '{'; ch2 = '}';
+	} else if (ch == '<' || ch == '>') {
+		ch1 = '<'; ch2 = '>';
 	}
+
+	if (ch1 != 0 && editor.GetSelectionEmpty() == 0) {
+		SurroundSelectionsWith(ch1, ch2);
+		return TRUE; // This key has been "handled" and won't propogate
+	}
+
+	proceed:
 	return CallNextHookEx(hook, ncode, wparam, lparam); //pass control to next hook in the hook chain.
 }
 
@@ -168,6 +169,7 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD  reasonForCall, LPVOID lpReserved) {
 	switch (reasonForCall) {
 		case DLL_PROCESS_ATTACH:
 			_hModule = hModule;
+			updateKL();
 			break;
 		case DLL_PROCESS_DETACH:
 			break;
@@ -224,6 +226,8 @@ extern "C" __declspec(dllexport) void beNotified(SCNotification *notifyCode) {
 }
 
 extern "C" __declspec(dllexport) LRESULT messageProc(UINT Message, WPARAM wParam, LPARAM lParam) {
+	if (Message == WM_INPUTLANGCHANGE)
+		updateKL();
 	return TRUE;
 }
 
