@@ -74,6 +74,7 @@ static HWND GetCurrentScintilla() {
 	return (which == 0) ? nppData._scintillaMainHandle : nppData._scintillaSecondHandle;
 }
 
+
 static void SurroundSelectionsWith(char ch1, char ch2) {
 	std::vector<std::pair<int, int>> selections;
 
@@ -116,49 +117,64 @@ static void SurroundSelectionsWith(char ch1, char ch2) {
 	editor.EndUndoAction();
 }
 
+static char GetASCIICharacterFromKey(WPARAM wparam, LPARAM lparam) 
+{
+	BYTE keyboardState[256];
+	GetKeyboardState(keyboardState);
+
+	// https://msdn.microsoft.com/en-us/library/ms644984(v=VS.85).aspx
+	UINT scanCode = HIBYTE(LOWORD(lparam)); 
+	UINT virtualKeyCode = UINT(wparam);
+	UINT isMenuActive = 0;
+
+	WORD charResult = 0;
+
+	int isDeadKey = ToAscii(
+		virtualKeyCode,
+		scanCode,
+		keyboardState,
+		&charResult,
+		isMenuActive
+	);
+
+	return (CHAR)charResult;
+}
+
+static void SetPrePostCharacters(char& pre, char& post, char actual, char left, char right)
+{
+	if (actual == left || actual == right) {
+		pre = left;
+		post = right;
+	}
+}
+
 LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
-	if (ncode == HC_ACTION) {
-		if ((HIWORD(lparam) & KF_UP) == 0) {
-			if (hasFocus && !(GetKeyState(VK_CONTROL) & KF_UP) && !(GetKeyState(VK_MENU) & KF_UP)) {
-				char ch1 = 0, ch2 = 0;
 
-				if (wparam == VK_OEM_7) {
-					if (GetKeyState(VK_SHIFT) & KF_UP) {
-						ch1 = ch2 = '"';
-					}
-					else {
-						ch1 = ch2 = '\'';
-					}
-				}
-				else if (wparam == VK_OEM_4 || wparam == VK_OEM_6) {
-					if (GetKeyState(VK_SHIFT) & KF_UP) {
-						ch1 = '{';
-						ch2 = '}';
-					}
-					else {
-						ch1 = '[';
-						ch2 = ']';
-					}
-				}
-				else if (wparam == 0x39 || wparam == 0x30) {
-					if (GetKeyState(VK_SHIFT) & KF_UP) {
-						ch1 = '(';
-						ch2 = ')';
-					}
-				}
-				//else if (wparam == VK_OEM_COMMA) {
-				//	if (GetKeyState(VK_SHIFT) & KF_UP) {
-				//		ch1 = '<';
-				//		ch2 = '>';
-				//	}
-				//}
+	bool isTextSelected = !editor.GetSelectionEmpty();
+	bool isKeyDown = (HIWORD(lparam) & KF_UP) == 0;
 
-				if (ch1 != 0 && editor.GetSelectionEmpty() == 0) {
-					SurroundSelectionsWith(ch1, ch2);
-					return TRUE; // This key has been "handled" and won't propogate
-				}
-			}
+	if (ncode == HC_ACTION 
+		&& hasFocus 
+		&& isTextSelected 
+		&& isKeyDown) {
+
+		char ch1 = 0;
+		char ch2 = 0;
+
+		char charASCII = GetASCIICharacterFromKey(wparam, lparam);
+
+		SetPrePostCharacters(ch1, ch2, charASCII, '(', ')');
+		SetPrePostCharacters(ch1, ch2, charASCII, '[', ']');
+		SetPrePostCharacters(ch1, ch2, charASCII, '{', '}');
+		SetPrePostCharacters(ch1, ch2, charASCII, '<', '>');
+		SetPrePostCharacters(ch1, ch2, charASCII, '"', '"');
+		SetPrePostCharacters(ch1, ch2, charASCII, '\'', '\'');
+
+		if (ch1 != 0) {
+			SurroundSelectionsWith(ch1, ch2);
+			return TRUE;
 		}
+
 	}
 	return CallNextHookEx(hook, ncode, wparam, lparam); //pass control to next hook in the hook chain.
 }
