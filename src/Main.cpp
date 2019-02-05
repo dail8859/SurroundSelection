@@ -122,6 +122,7 @@ static char GetASCIICharacterFromKey(WPARAM wparam, LPARAM lparam)
 	BYTE keyboardState[256];
 	GetKeyboardState(keyboardState);
 
+	// to lookup contents of wparam and lparam, visit:
 	// https://msdn.microsoft.com/en-us/library/ms644984(v=VS.85).aspx
 	UINT scanCode = HIBYTE(LOWORD(lparam)); 
 	UINT virtualKeyCode = UINT(wparam);
