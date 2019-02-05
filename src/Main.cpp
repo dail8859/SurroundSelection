@@ -137,7 +137,7 @@ static char GetASCIICharacterFromKey(WPARAM wparam, LPARAM lparam)
 		isMenuActive
 	);
 
-	return (CHAR)charResult;
+	return static_cast<char>(charResult);
 }
 
 static void SetPrePostCharacters(char& pre, char& post, char actual, char left, char right)
