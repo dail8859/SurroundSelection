@@ -15,6 +15,7 @@ Select some text and type one of the following characters:
 - `(` or `)`
 - `{` or `}`
 - `[` or `]`
+- `<` or `>`
 
 ## Installation
 Install the plugin by downloading it from the [Release](https://github.com/dail8859/SurroundSelection/releases) page and copy `SurroundSelection.dll` to your `plugins` folder.
