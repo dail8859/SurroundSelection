@@ -130,7 +130,7 @@ static char GetASCIICharacterFromKey(WPARAM wparam, LPARAM lparam)
 
 	WORD charResult = 0;
 
-	int isDeadKey = ToAscii(
+	ToAscii(
 		virtualKeyCode,
 		scanCode,
 		keyboardState,
