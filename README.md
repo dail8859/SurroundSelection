@@ -16,6 +16,12 @@ Select some text and type one of the following characters:
 - `{` or `}`
 - `<` or `>`
 
+The configuration file SurroundSelection.ini now provides additional characters to surround with.  Use as (for example):
+
+AdditionalChars=*-_
+
+to use '*', '-' and '_' to act as surround characters as the above examples do.
+
 ## Installation
 Install the plugin by downloading it from the [Release](https://github.com/dail8859/SurroundSelection/releases) page and copy `SurroundSelection.dll` to your `plugins` folder. You can also install it via the Plugin Admin or Plugin Manager (depending on your Notepad++ version).
 

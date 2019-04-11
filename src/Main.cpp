@@ -34,6 +34,7 @@ static bool hasFocus = true;
 static ScintillaGateway editor;
 static LPWORD kbBuff = (LPWORD)new byte[buffChars];
 static PBYTE kbState = new byte[256];
+TCHAR addChars[1024];
 
 static void enableSurroundSelection();
 static void showAbout();
@@ -41,7 +42,8 @@ static void showAbout();
 LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam);
 
 FuncItem funcItem[] = {
-	{ TEXT("Enable"), enableSurroundSelection, 0, false, nullptr },
+	// 2019-04-11:MVINCENT:Alt-key underline in menu
+	{ TEXT("&Enable"), enableSurroundSelection, 0, false, nullptr },
 	{ TEXT(""), nullptr, 0, false, nullptr },
 	{ TEXT("About..."), showAbout, 0, false, nullptr }
 };
@@ -114,10 +116,11 @@ static void SurroundSelectionsWith(char ch1, char ch2) {
 
 		editor.ReplaceTarget(target);
 
+		// 2019-04-11:MVINCENT: leave cursor at END of insertion instead of beginning
 		if (i == 0)
-			editor.SetSelection(selection.first + offset + 1, selection.second + offset + 1);
+			editor.SetSelection(selection.second + offset + 1, selection.first + offset + 1);
 		else
-			editor.AddSelection(selection.first + offset + 1, selection.second + offset + 1);
+			editor.AddSelection(selection.second + offset + 1, selection.first + offset + 1);
 
 		offset += 2; // Add 2 since the replaced string is 2 chars longer
 	}
@@ -153,6 +156,10 @@ LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
 		ch1 = '{'; ch2 = '}';
 	} else if (ch == '<' || ch == '>') {
 		ch1 = '<'; ch2 = '>';
+	} else {
+		for (unsigned int i = 0; i < _tcslen(addChars); i++)
+			if (ch == addChars[i])
+				ch1 = ch2 = (char)ch;
 	}
 
 	if (ch1 != 0 && editor.GetSelectionEmpty() == 0) {
@@ -189,7 +196,8 @@ extern "C" __declspec(dllexport) void setInfo(NppData notepadPlusData) {
 }
 
 extern "C" __declspec(dllexport) const wchar_t *getName() {
-	return TEXT("SurroundSelection");
+	// 2019-04-11:MVINCENT:Alt-key underline in menu
+	return TEXT("S&urroundSelection");
 }
 
 extern "C" __declspec(dllexport) FuncItem *getFuncsArray(int *nbF) {
@@ -211,6 +219,7 @@ extern "C" __declspec(dllexport) void beNotified(SCNotification *notifyCode) {
 				hook = SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, (HINSTANCE)_hModule, ::GetCurrentThreadId());
 				SendMessage(nppData._nppHandle, NPPM_SETMENUITEMCHECK, funcItem[0]._cmdID, 1);
 			}
+			GetPrivateProfileString(TEXT("SurroundSelection"), TEXT("AdditionalChars"), TEXT(""), addChars, 1023, GetIniFilePath());
 			break;
 		}
 		case NPPN_SHUTDOWN:
