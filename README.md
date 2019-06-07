@@ -23,10 +23,10 @@ The configuration file SurroundSelection.ini provides additional characters to s
 to use `*`, `-` and `_` to act as surround characters as the above examples do.
 
 ## Installation
-Install the plugin by downloading it from the [Release](https://github.com/dail8859/SurroundSelection/releases) page and copy `SurroundSelection.dll` to your `plugins` folder. You can also install it via the Plugin Admin or Plugin Manager (depending on your Notepad++ version).
 
+Use the built in Plugin Admin to automatically install the plugin.
 ## Development
-The code has been developed using MSVC 2015. Building the code will generate the DLL which can be used by Notepad++. For convenience, MSVC copies the DLL into the Notepad++ plugin directory.
+The code has been developed using Visual Studio 2017. Building the code will generate the DLL which can be used by Notepad++. For convenience, MSVC copies the DLL into the Notepad++ plugin directory.
 
 ## License
 This code is released under the [GNU General Public License version 2](http://www.gnu.org/licenses/gpl-2.0.txt).
