@@ -25,8 +25,9 @@ to use `*`, `-` and `_` to act as surround characters as the above examples do.
 ## Installation
 
 Use the built in Plugin Admin to automatically install the plugin.
+
 ## Development
-The code has been developed using Visual Studio 2017. Building the code will generate the DLL which can be used by Notepad++. For convenience, MSVC copies the DLL into the Notepad++ plugin directory.
+The code is developed using Visual Studio 2017. Building the code will generate a DLL which can be used by Notepad++. For convenience, Visual Studio copies the DLL into the Notepad++ plugin directory.
 
 ## License
 This code is released under the [GNU General Public License version 2](http://www.gnu.org/licenses/gpl-2.0.txt).

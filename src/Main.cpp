@@ -17,7 +17,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "PluginInterface.h"
-#include "ScintillaGateway.h"
+#include "ScintillaEditor.h"
 #include "resource.h"
 #include "AboutDialog.h"
 
@@ -31,7 +31,7 @@ static NppData nppData;
 static HHOOK hook = NULL;
 static HKL keyboardLayout = NULL;
 static bool hasFocus = true;
-static ScintillaGateway editor;
+static ScintillaEditor editor;
 static LPWORD kbBuff = (LPWORD)new byte[buffChars];
 static PBYTE kbState = new byte[256];
 TCHAR addChars[1024];

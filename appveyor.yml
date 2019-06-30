@@ -1,4 +1,4 @@
-version: 1.3.0.{build}
+version: 1.3.1.{build}
 image: Visual Studio 2017
 
 platform:
@@ -35,15 +35,13 @@ after_build:
       Push-AppveyorArtifact "$($BuildPath)\SurroundSelection.dll" -FileName SurroundSelection.dll
 
       if ($($env:APPVEYOR_REPO_TAG) -eq "true" -and $env:CONFIGURATION -eq "Release") {
-        mkdir SurroundSelection
-        Move-Item -Path "$($BuildPath)\SurroundSelection.dll" -Destination .\SurroundSelection
         if ($env:BUILD_PLATFORM -eq "x64"){
           $ZipFileName = "SurroundSelection_$($env:APPVEYOR_REPO_TAG_NAME)_x64.zip"
         }
         if ($env:BUILD_PLATFORM -eq "Win32"){
           $ZipFileName = "SurroundSelection_$($env:APPVEYOR_REPO_TAG_NAME).zip"
         }
-        7z a $ZipFileName .\SurroundSelection
+        7z a $ZipFileName "$($BuildPath)\SurroundSelection.dll"
       }
 
 artifacts:
