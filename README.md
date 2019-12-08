@@ -20,7 +20,11 @@ The configuration file SurroundSelection.ini provides additional characters to s
 
     AdditionalChars=*-_
 
-to use `*`, `-` and `_` to act as surround characters as the above examples do.
+to use `*`, `-` and `_` to act as surround characters as the above examples do. You can also ignore specific characters:
+
+    IgnoreChars=]})>
+
+would prevent the plugin triggering any time there was a "closing" character typed (and would only trigger on opening characters).
 
 ## Installation
 

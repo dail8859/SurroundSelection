@@ -35,6 +35,7 @@ static ScintillaEditor editor;
 static LPWORD kbBuff = (LPWORD)new byte[buffChars];
 static PBYTE kbState = new byte[256];
 TCHAR addChars[1024];
+TCHAR ignoreChars[1024];
 
 static void enableSurroundSelection();
 static void showAbout();
@@ -135,7 +136,7 @@ LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
 
 	char ch1 = 0, ch2 = 0;
 	UINT scanCode = (lparam >> 16) & 0xFF;
-	//Get full keyboard state
+	// Get full keyboard state
 	if (!GetKeyboardState(kbState))
 		goto proceed;
 	//Translate state, pressed key and keyboard layout in the respective characters
@@ -143,8 +144,14 @@ LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
 	if (amount < 1)
 		goto proceed;
 
-	//Get first translated character
+	//  Get first translated character
 	char ch = (char)kbBuff[0];
+
+	// See if the character should be ignored
+	for (unsigned int i = 0; i < _tcslen(ignoreChars); i++)
+		if (ch == ignoreChars[i])
+			goto proceed;
+
 	if (ch == '"' || ch == '\'' || ch == '`') {
 		ch1 = ch2 = (char)ch;
 	} else if (ch == '(' || ch == ')') {
@@ -218,6 +225,7 @@ extern "C" __declspec(dllexport) void beNotified(SCNotification *notifyCode) {
 				SendMessage(nppData._nppHandle, NPPM_SETMENUITEMCHECK, funcItem[0]._cmdID, 1);
 			}
 			GetPrivateProfileString(TEXT("SurroundSelection"), TEXT("AdditionalChars"), TEXT(""), addChars, 1023, GetIniFilePath());
+			GetPrivateProfileString(TEXT("SurroundSelection"), TEXT("IgnoreChars"), TEXT(""), ignoreChars, 1023, GetIniFilePath());
 			break;
 		}
 		case NPPN_SHUTDOWN:
