@@ -45,7 +45,7 @@ static LPWORD kbBuff = (LPWORD)new byte[buffChars];
 static PBYTE kbState = new byte[256];
 static std::vector<UCHAR> kbProcessChars;
 static std::vector<COMBINATION> kbProcessCombinations;
-static int kbProcessCombinationsCount;
+static size_t kbProcessCombinationsCount;
 TCHAR addChars[1024];
 TCHAR ignoreChars[1024];
 
@@ -206,7 +206,7 @@ LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
 		goto proceed;
 
 	// Check whether any "registered" combination is pressed
-	for (int i = 0; i < kbProcessCombinationsCount; i++) {
+	for (size_t i = 0; i < kbProcessCombinationsCount; i++) {
 		COMBINATION comb = kbProcessCombinations[i];
 
 		if (((kbState[comb.vk] & 0xF0) == 0x80)
