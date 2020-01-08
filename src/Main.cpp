@@ -26,6 +26,15 @@
 
 #define buffChars 1
 
+struct COMBINATION {
+	CHAR ch1;
+	CHAR ch2;
+	BYTE vk;
+	BYTE shift;
+	BYTE ctrl;
+	BYTE alt;
+};
+
 static HANDLE _hModule;
 static NppData nppData;
 static HHOOK hook = NULL;
@@ -34,6 +43,9 @@ static bool hasFocus = true;
 static ScintillaEditor editor;
 static LPWORD kbBuff = (LPWORD)new byte[buffChars];
 static PBYTE kbState = new byte[256];
+static std::vector<CHAR> kbProcessChars;
+static std::vector<COMBINATION> kbProcessCombinations;
+static int kbProcessCombinationsCount;
 TCHAR addChars[1024];
 TCHAR ignoreChars[1024];
 
@@ -59,8 +71,66 @@ const wchar_t *GetIniFilePath() {
 	return iniPath;
 }
 
+static void prepareKeyboardChars() {
+	BOOL processChars[256] = { FALSE };
+
+	kbProcessChars.clear();
+
+	// Default characters
+	processChars[(CHAR) '\''] = TRUE;
+	processChars[(CHAR) '"'] = TRUE;
+	processChars[(CHAR) '('] = TRUE;
+	processChars[(CHAR) ')'] = TRUE;
+	processChars[(CHAR) '{'] = TRUE;
+	processChars[(CHAR) '}'] = TRUE;
+	processChars[(CHAR) '['] = TRUE;
+	processChars[(CHAR) ']'] = TRUE;
+	processChars[(CHAR) '`'] = TRUE;
+
+	// Add user defined
+	for (SIZE_T i = 0; i < _tcslen(addChars); i++)
+		processChars[(CHAR) addChars[i]] = TRUE;
+	
+	// Disable ignored
+	for (SIZE_T i = 0; i < _tcslen(ignoreChars); i++)
+		processChars[(CHAR) ignoreChars[i]] = FALSE;
+
+	// Add all enabled into kbProcessChars
+	for (SIZE_T i = 0; i < 256; i++)
+		if (processChars[i])
+			kbProcessChars.push_back((CHAR) i);
+}
+
 static void updateKL() {
 	keyboardLayout = GetKeyboardLayout(0);
+
+	// Transform kbProcessChars (pure characters) into kbProcessCombinations (VK keys + alt/ctrl/shift mask)
+	kbProcessCombinations.clear();
+
+	for (CHAR ch : kbProcessChars) {
+		SHORT comb = VkKeyScanEx(ch, keyboardLayout);
+
+		CHAR ch1 = ch;
+		CHAR ch2 = ch;
+		BYTE vk = (comb & 0xFF);
+		BYTE shift = (comb & 0x100) == 0x100 ? 0x80 : 0;
+		BYTE ctrl = (comb & 0x200) == 0x200 ? 0x80 : 0;
+		BYTE alt = (comb & 0x400) == 0x400 ? 0x80 : 0;
+
+		if (ch == '(' || ch == ')') {
+			ch1 = '('; ch2 = ')';
+		} else if (ch == '[' || ch == ']') {
+			ch1 = '['; ch2 = ']';
+		} else if (ch == '{' || ch == '}') {
+			ch1 = '{'; ch2 = '}';
+		} else if (ch == '<' || ch == '>') {
+			ch1 = '<'; ch2 = '>';
+		} 
+
+		kbProcessCombinations.push_back(COMBINATION{ ch1, ch2, vk, shift, ctrl, alt });
+	}
+
+	kbProcessCombinationsCount = kbProcessCombinations.size();
 }
 
 static void enableSurroundSelection() {
@@ -134,55 +204,35 @@ LRESULT CALLBACK KeyboardProc(int ncode, WPARAM wparam, LPARAM lparam) {
 	if ((HIWORD(lparam) & KF_UP) != 0 || !hasFocus)
 		goto proceed;
 
-	char ch1 = 0, ch2 = 0;
-	UINT scanCode = (lparam >> 16) & 0xFF;
 	// Get full keyboard state
 	if (!GetKeyboardState(kbState))
 		goto proceed;
-	//Translate state, pressed key and keyboard layout in the respective characters
-	int amount = ToAsciiEx((UINT)wparam, scanCode, kbState, kbBuff, 0, keyboardLayout);
-	if (amount < 1)
-		goto proceed;
 
-	//  Get first translated character
-	char ch = (char)kbBuff[0];
+	// Check whether any "registered" combination is pressed
+	for (int i = 0; i < kbProcessCombinationsCount; i++) {
+		COMBINATION comb = kbProcessCombinations[i];
 
-	// See if the character should be ignored
-	for (unsigned int i = 0; i < _tcslen(ignoreChars); i++)
-		if (ch == ignoreChars[i])
-			goto proceed;
-
-	if (ch == '"' || ch == '\'' || ch == '`') {
-		ch1 = ch2 = (char)ch;
-	} else if (ch == '(' || ch == ')') {
-		ch1 = '('; ch2 = ')';
-	} else if (ch == '[' || ch == ']') {
-		ch1 = '['; ch2 = ']';
-	} else if (ch == '{' || ch == '}') {
-		ch1 = '{'; ch2 = '}';
-	} else if (ch == '<' || ch == '>') {
-		ch1 = '<'; ch2 = '>';
-	} else {
-		for (unsigned int i = 0; i < _tcslen(addChars); i++)
-			if (ch == addChars[i])
-				ch1 = ch2 = (char)ch;
-	}
-
-	if (ch1 != 0 && editor.GetSelectionEmpty() == 0) {
-		SurroundSelectionsWith(ch1, ch2);
-		return TRUE; // This key has been "handled" and won't propogate
+		if (((kbState[comb.vk] & 0xF0) == 0x80)
+			&& comb.shift == (kbState[VK_SHIFT] & 0xF0)
+			&& comb.ctrl == (kbState[VK_CONTROL] & 0xF0)
+			&& comb.alt == (kbState[VK_MENU] & 0xF0)
+		) {
+			if (editor.GetSelectionEmpty() == 0) {
+				SurroundSelectionsWith(comb.ch1, comb.ch2);
+				return TRUE; // This key has been "handled" and won't propogate
+			}
+			break;
+		}
 	}
 
 	proceed:
 	return CallNextHookEx(hook, ncode, wparam, lparam); //pass control to next hook in the hook chain.
 }
 
-
 BOOL APIENTRY DllMain(HANDLE hModule, DWORD  reasonForCall, LPVOID lpReserved) {
 	switch (reasonForCall) {
 		case DLL_PROCESS_ATTACH:
 			_hModule = hModule;
-			updateKL();
 			break;
 		case DLL_PROCESS_DETACH:
 			break;
@@ -226,6 +276,8 @@ extern "C" __declspec(dllexport) void beNotified(SCNotification *notifyCode) {
 			}
 			GetPrivateProfileString(TEXT("SurroundSelection"), TEXT("AdditionalChars"), TEXT(""), addChars, 1023, GetIniFilePath());
 			GetPrivateProfileString(TEXT("SurroundSelection"), TEXT("IgnoreChars"), TEXT(""), ignoreChars, 1023, GetIniFilePath());
+			prepareKeyboardChars();
+			updateKL();
 			break;
 		}
 		case NPPN_SHUTDOWN:
