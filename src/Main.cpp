@@ -72,33 +72,26 @@ const wchar_t *GetIniFilePath() {
 }
 
 static void prepareKeyboardChars() {
-	BOOL processChars[256] = { FALSE };
+	BOOL processChars[255] = { FALSE };
 
 	kbProcessChars.clear();
 
 	// Default characters
-	processChars[(CHAR) '\''] = TRUE;
-	processChars[(CHAR) '"'] = TRUE;
-	processChars[(CHAR) '('] = TRUE;
-	processChars[(CHAR) ')'] = TRUE;
-	processChars[(CHAR) '{'] = TRUE;
-	processChars[(CHAR) '}'] = TRUE;
-	processChars[(CHAR) '['] = TRUE;
-	processChars[(CHAR) ']'] = TRUE;
-	processChars[(CHAR) '`'] = TRUE;
+	for (UCHAR c : "\"'(){}[]<>`")
+		processChars[c] = TRUE;
 
 	// Add user defined
-	for (SIZE_T i = 0; i < _tcslen(addChars); i++)
+	for (SIZE_T i = 0, j = _tcslen(addChars); i < j; i++)
 		processChars[(UCHAR) addChars[i]] = TRUE;
 	
 	// Disable ignored
-	for (SIZE_T i = 0; i < _tcslen(ignoreChars); i++)
+	for (SIZE_T i = 0, j = _tcslen(ignoreChars); i < j; i++)
 		processChars[(UCHAR) ignoreChars[i]] = FALSE;
 
 	// Add all enabled into kbProcessChars
-	for (SIZE_T i = 0; i < 256; i++)
+	for (UCHAR i = 0; i < 255; i++)
 		if (processChars[i])
-			kbProcessChars.push_back((UCHAR) i);
+			kbProcessChars.push_back(i);
 }
 
 static void updateKL() {
