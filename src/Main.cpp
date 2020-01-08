@@ -27,8 +27,8 @@
 #define buffChars 1
 
 struct COMBINATION {
-	CHAR ch1;
-	CHAR ch2;
+	UCHAR ch1;
+	UCHAR ch2;
 	BYTE vk;
 	BYTE shift;
 	BYTE ctrl;
@@ -43,7 +43,7 @@ static bool hasFocus = true;
 static ScintillaEditor editor;
 static LPWORD kbBuff = (LPWORD)new byte[buffChars];
 static PBYTE kbState = new byte[256];
-static std::vector<CHAR> kbProcessChars;
+static std::vector<UCHAR> kbProcessChars;
 static std::vector<COMBINATION> kbProcessCombinations;
 static int kbProcessCombinationsCount;
 TCHAR addChars[1024];
@@ -89,16 +89,16 @@ static void prepareKeyboardChars() {
 
 	// Add user defined
 	for (SIZE_T i = 0; i < _tcslen(addChars); i++)
-		processChars[(CHAR) addChars[i]] = TRUE;
+		processChars[(UCHAR) addChars[i]] = TRUE;
 	
 	// Disable ignored
 	for (SIZE_T i = 0; i < _tcslen(ignoreChars); i++)
-		processChars[(CHAR) ignoreChars[i]] = FALSE;
+		processChars[(UCHAR) ignoreChars[i]] = FALSE;
 
 	// Add all enabled into kbProcessChars
 	for (SIZE_T i = 0; i < 256; i++)
 		if (processChars[i])
-			kbProcessChars.push_back((CHAR) i);
+			kbProcessChars.push_back((UCHAR) i);
 }
 
 static void updateKL() {
@@ -107,11 +107,16 @@ static void updateKL() {
 	// Transform kbProcessChars (pure characters) into kbProcessCombinations (VK keys + alt/ctrl/shift mask)
 	kbProcessCombinations.clear();
 
-	for (CHAR ch : kbProcessChars) {
+	for (UCHAR ch : kbProcessChars) {
 		SHORT comb = VkKeyScanEx(ch, keyboardLayout);
 
-		CHAR ch1 = ch;
-		CHAR ch2 = ch;
+		if (comb == -1) {
+			MessageBoxA(NULL, "nope", "nope", 0);
+			continue;
+		}
+
+		UCHAR ch1 = ch;
+		UCHAR ch2 = ch;
 		BYTE vk = (comb & 0xFF);
 		BYTE shift = (comb & 0x100) == 0x100 ? 0x80 : 0;
 		BYTE ctrl = (comb & 0x200) == 0x200 ? 0x80 : 0;
@@ -125,7 +130,7 @@ static void updateKL() {
 			ch1 = '{'; ch2 = '}';
 		} else if (ch == '<' || ch == '>') {
 			ch1 = '<'; ch2 = '>';
-		} 
+		}
 
 		kbProcessCombinations.push_back(COMBINATION{ ch1, ch2, vk, shift, ctrl, alt });
 	}
