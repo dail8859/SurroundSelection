@@ -111,7 +111,6 @@ static void updateKL() {
 		SHORT comb = VkKeyScanEx(ch, keyboardLayout);
 
 		if (comb == -1) {
-			MessageBoxA(NULL, "nope", "nope", 0);
 			continue;
 		}
 
