@@ -77,8 +77,11 @@ static void prepareKeyboardChars() {
 	kbProcessChars.clear();
 
 	// Default characters
-	for (UCHAR c : "\"'(){}[]<>`")
+	const char *defaultChars = "\"'(){}[]<>`";
+	for (unsigned i = 0; defaultChars[i]; i++) {
+		UCHAR c = (UCHAR)defaultChars[i];
 		processChars[c] = TRUE;
+	}
 
 	// Add user defined
 	for (SIZE_T i = 0, j = _tcslen(addChars); i < j; i++)
